@@ -172,12 +172,17 @@ internal class DB {
         return schema[tblName].ContainsKey(colName);
     }
 
-    public void insertValues(string tableName, List<string> colNames, List<string> values) {
+    public void insertValues(string tableName, List<string> colNames, List<object> values, bool bIgnore = true, bool bReplace = true) {
         for (int i = 0; i < colNames.Count; i++) {
-            values[i] = schema[tableName][colNames[i]].convertValue(values[i]);
+            values[i] = schema[tableName][colNames[i].ToUpper()].convertValue(values[i]);
         }
+        string strX = "INSERT";
+        if (bIgnore)
+            strX += " OR IGNORE";
+        else if (bReplace)
+            strX += " OR REPLACE";
 
-        executeCommand("INSERT OR IGNORE into " + tableName + convertColNames(colNames) + " values (" + String.Join(",", values) + ")");
+        executeCommand(strX + " into " + tableName + convertColNames(colNames) + " values (" + String.Join(",", values) + ")");
     }
 
 
@@ -203,9 +208,17 @@ internal class DBCol {
         return _colName.Contains("DATE");
     }
 
-    public string convertValue(string input) {
+    private bool isInt() {
+        return _dataType.Contains("INTEGER");
+    }
+
+    public string convertValue(object inputRaw) {
+        if (inputRaw is null) return "null";
+
+        string input = inputRaw.ToString();
         if (input.Length == 0) return "null";
         input = input.Replace("'", "");
+        input = input.Replace(",", "");
 
         DateTime dt;
         if (isDate() && DateTime.TryParse(input, out dt)) return dt.ToOADate().ToString();
