@@ -29,6 +29,8 @@ internal static class Tool_SQLite {
 internal class DB {
     private SQLiteConnection _db;
     private SQLiteTransaction _dbTrans;
+    private SQLiteCommand _dbTransCmd;
+
     private string _dbPath;
 
     private Dictionary<string, Dictionary<string, DBCol>> schema;
@@ -87,14 +89,16 @@ internal class DB {
     }
 
     public void executeCommand(string cmd) {
-        if (_dbTrans is null) _dbTrans = _db.BeginTransaction();
+        if (_dbTrans is null) {
+            _dbTrans = _db.BeginTransaction();
+            _dbTransCmd = _db.CreateCommand();
+        }
 
-        using SQLiteCommand sqlCmd = _db.CreateCommand();
 
-        sqlCmd.CommandText = cmd;
+        _dbTransCmd.CommandText = cmd;
 
         try {
-            sqlCmd.ExecuteNonQuery();
+            _dbTransCmd.ExecuteNonQuery();
         } catch (Exception e) {
             writeErrorMsg(cmd, e.Message);
         }
@@ -126,6 +130,7 @@ internal class DB {
         for (int j = 0; j < jEnd; j++)
             table.Columns.Add(reader.GetName(j), convertSQLDataType(reader.GetDataTypeName(j)));
 
+        int row = 0;
         // Add data rows
         while (reader.Read()) {
             DataRow x = table.NewRow();
@@ -166,6 +171,7 @@ internal class DB {
         if (_dbTrans is null) return;
         _dbTrans.Commit();
         _dbTrans = null;
+        _dbTransCmd = null;
     }
 
     public bool isDBColumn(string tblName, string colName) {
@@ -185,11 +191,10 @@ internal class DB {
         executeCommand(strX + " into " + tableName + convertColNames(colNames) + " values (" + String.Join(",", values) + ")");
     }
 
-
     private string convertColNames(IEnumerable<string> colNames) {
         return "(" + String.Join(",", colNames) + ")";
-
     }
+
 }
 
 internal class DBCol {
