@@ -88,19 +88,19 @@ internal class DB {
         }
     }
 
-    public void executeCommand(string cmd) {
+    public int executeCommand(string cmd) {
         if (_dbTrans is null) {
             _dbTrans = _db.BeginTransaction();
             _dbTransCmd = _db.CreateCommand();
         }
 
-
         _dbTransCmd.CommandText = cmd;
 
         try {
-            _dbTransCmd.ExecuteNonQuery();
+            return _dbTransCmd.ExecuteNonQuery();
         } catch (Exception e) {
             writeErrorMsg(cmd, e.Message);
+            return 0;
         }
     }
 
@@ -130,7 +130,6 @@ internal class DB {
         for (int j = 0; j < jEnd; j++)
             table.Columns.Add(reader.GetName(j), convertSQLDataType(reader.GetDataTypeName(j)));
 
-        int row = 0;
         // Add data rows
         while (reader.Read()) {
             DataRow x = table.NewRow();
@@ -234,5 +233,22 @@ internal class DBCol {
 
     public string getName() {
         return _colName;
+    }
+}
+
+// The constant casting of data rows is killing me.  Ugh
+public static class ExtensionMethods {
+    public static int getInt(this DataRow row, string fieldName, int xDefault = 0) {
+        int val;
+        if (int.TryParse(row[fieldName].ToString(), out val)) return val;
+        return xDefault;
+    }
+    public static double getDbl(this DataRow row, string fieldName, double xDefault = 0) {
+        double val;
+        if (double.TryParse(row[fieldName].ToString(), out val)) return val;
+        return xDefault;
+    }
+    public static string getString(this DataRow row, string fieldName) {
+        return row[fieldName].ToString();
     }
 }

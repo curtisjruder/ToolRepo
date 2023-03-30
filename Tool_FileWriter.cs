@@ -8,7 +8,11 @@ internal class Tool_FileWriter {
     private Tool_FileWriter() { }
 
     internal static void writeContent(string path, List<string> input, bool overWrite = true) {
-        writeContent(path, string.Join('\n', input), overWrite);
+        using(StreamWriter writer = new StreamWriter(path, !overWrite)) {
+            foreach (string strX in input) {
+                writer.WriteLine(strX);
+            }          
+        }        
     }
 
     internal static void writeContent(string path, string input, bool overWrite = true) {
